@@ -18,12 +18,6 @@ client.connect_signal("request::titlebars", function(c)
         end),
     }
 
-	local resize_buttons = {
-		awful.button({ }, 1, function()
-			c:activate { context = "titlebar", action = "mouse_resize" }
-		end),
-	}
-
 	-- Widgets
 
 	local icon = wibox.widget {
@@ -97,10 +91,8 @@ client.connect_signal("request::titlebars", function(c)
 
 	-- Titlebar
 
-    local titlebar   = awful.titlebar(c, { size = dpi(40), position = "top"    })
-	local handle     = awful.titlebar(c, { size = dpi(8),  position = "bottom" })
-	local leftedge   = awful.titlebar(c, { size = dpi(4),  position = "left"   })
-	local rightedge  = awful.titlebar(c, { size = dpi(4),  position = "right"  })
+    local titlebar = awful.titlebar(c, { size = dpi(40), position = "top" })
+	local handle = awful.titlebar(c, { size = dpi(20), position = "bottom" })
 
 	titlebar:setup {
 		{
@@ -120,27 +112,15 @@ client.connect_signal("request::titlebars", function(c)
 		margins = dpi(5),
 		widget = wibox.container.margin
 	}
-
-	-- Bottom, left, right edges: left-click drag to resize from any edge or corner
 	handle:setup {
-		buttons = resize_buttons,
-		widget  = live(wibox.container.background, { bg = "bg" })
-	}
-	leftedge:setup {
-		buttons = resize_buttons,
-		widget  = live(wibox.container.background, { bg = "bg" })
-	}
-	rightedge:setup {
-		buttons = resize_buttons,
-		widget  = live(wibox.container.background, { bg = "bg" })
+		buttons = buttons,
+		widget = wibox.container.background
 	}
 
 	awesome.connect_signal("live::reload", function()
 		titlebar:set_bg(beautiful.bg)
 		titlebar:set_fg(beautiful.fg)
 		handle:set_bg(beautiful.bg)
-		leftedge:set_bg(beautiful.bg)
-		rightedge:set_bg(beautiful.bg)
 	end)
 
 end)

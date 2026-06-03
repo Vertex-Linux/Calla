@@ -9,13 +9,90 @@ local dockjson = gears.filesystem.get_cache_dir() .. "dock.json"
 
 local tasklist
 
--- Stored reference so the GC doesn't destroy the menu while it's open
-local _dock_menu
+-- Custom context menu (same overlay pattern as the desktop menu so that
+-- clicking anywhere outside dismisses it and the menu never goes off-screen).
+local _dmenu_open = false
+
+local _dmenu_overlay = wibox { ontop = true, visible = false, opacity = 0 }
+local _dmenu_box     = wibox {
+	ontop        = true,
+	visible      = false,
+	border_width = dpi(1),
+	border_color = beautiful.bgalt,
+}
+
+local function dockMenuClose()
+	_dmenu_open            = false
+	_dmenu_overlay.visible = false
+	_dmenu_box.visible     = false
+end
+
+_dmenu_overlay.buttons = {
+	awful.button({}, 1, dockMenuClose),
+	awful.button({}, 2, dockMenuClose),
+	awful.button({}, 3, dockMenuClose),
+}
 
 local function showDockMenu(items)
-	if _dock_menu then _dock_menu:hide() end
-	_dock_menu = awful.menu({ items = items })
-	_dock_menu:show({ coords = mouse.coords() })
+	dockMenuClose()
+
+	local rows = {}
+	local h    = 0
+	for _, item in ipairs(items) do
+		local name, fn = item[1], item[2]
+		local bg_n = beautiful.bg
+		local bg_h = beautiful.bgalt
+		local row = wibox.widget {
+			{
+				wibox.widget.textbox(name),
+				left   = dpi(10),
+				right  = dpi(10),
+				widget = wibox.container.margin,
+			},
+			forced_height = dpi(24),
+			bg            = bg_n,
+			fg            = beautiful.fg,
+			widget        = wibox.container.background,
+		}
+		row:connect_signal("mouse::enter", function() row.bg = bg_h end)
+		row:connect_signal("mouse::leave", function() row.bg = bg_n end)
+		row.buttons = {
+			awful.button({}, 1, function()
+				dockMenuClose()
+				if type(fn) == "function" then fn() end
+			end)
+		}
+		table.insert(rows, row)
+		h = h + dpi(24)
+	end
+
+	rows.layout = wibox.layout.fixed.vertical
+	_dmenu_box:setup(rows)
+
+	local mw = dpi(165)
+	local c  = mouse.coords()
+	local sg = awful.screen.focused().geometry
+
+	-- Clamp to screen so the menu never overflows any edge
+	local mx = math.min(c.x, sg.x + sg.width  - mw)
+	local my = math.min(c.y, sg.y + sg.height - h)
+	mx = math.max(mx, sg.x)
+	my = math.max(my, sg.y)
+
+	_dmenu_box.width  = mw
+	_dmenu_box.height = h
+	_dmenu_box.x = mx
+	_dmenu_box.y = my
+
+	_dmenu_overlay.x      = sg.x
+	_dmenu_overlay.y      = sg.y
+	_dmenu_overlay.width  = sg.width
+	_dmenu_overlay.height = sg.height
+
+	-- Overlay first → menu maps on top
+	_dmenu_open            = true
+	_dmenu_overlay.visible = true
+	_dmenu_box.visible     = true
 end
 
 local pins = wibox.widget {
