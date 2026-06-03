@@ -189,6 +189,11 @@ if user.batt ~= nil then
 	end)
 end
 
+local cheatsheet = button({
+	image = "keyboard",
+	run   = function() awesome.emit_signal("widget::cheatsheet") end,
+})
+
 local clock = wibox.widget {
 	{
 		{
@@ -266,15 +271,16 @@ local layoutbox = hovercursor(wibox.widget {
 })
 
 local function applyPanelVisibility()
-	menu.visible      = user.panel_menu     ~= false
-	taglist.visible   = user.panel_taglist  ~= false
-	layoutbox.visible = user.panel_layouts  ~= false
-	systray.visible   = user.panel_systray  ~= false
-	media.visible     = user.panel_media    ~= false
-	volume.visible    = user.panel_volume   ~= false
-	battery.visible   = user.panel_battery  ~= false
-	clock.visible     = user.panel_clock    ~= false
-	dock.visible      = user.panel_dock     ~= false
+	menu.visible        = user.panel_menu        ~= false
+	taglist.visible     = user.panel_taglist     ~= false
+	layoutbox.visible   = user.panel_layouts     ~= false
+	systray.visible     = user.panel_systray     ~= false
+	media.visible       = user.panel_media       ~= false
+	volume.visible      = user.panel_volume      ~= false
+	battery.visible     = user.panel_battery     ~= false
+	clock.visible       = user.panel_clock       ~= false
+	dock.visible        = user.panel_dock        ~= false
+	cheatsheet.visible  = user.panel_cheatsheet  ~= false
 end
 
 applyPanelVisibility()
@@ -302,6 +308,7 @@ return wibox.widget {
 			nil,
 			{
 				systray,
+				cheatsheet,
 				hovercursor(wibox.widget {
 					media,
 					volume,

@@ -451,10 +451,11 @@ local function doPanel()
 	local col2 = Gtk.Box({
 		orientation = Gtk.Orientation.VERTICAL,
 		spacing = dpi(10),
-		panelSwitch("Music",   "panel_media"),
-		panelSwitch("Volume",  "panel_volume"),
-		panelSwitch("Battery", "panel_battery"),
-		panelSwitch("Clock",   "panel_clock"),
+		panelSwitch("Music",      "panel_media"),
+		panelSwitch("Volume",     "panel_volume"),
+		panelSwitch("Battery",    "panel_battery"),
+		panelSwitch("Clock",      "panel_clock"),
+		panelSwitch("Cheatsheet", "panel_cheatsheet"),
 	})
 
 	local grid = Gtk.Grid({

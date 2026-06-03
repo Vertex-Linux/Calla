@@ -63,10 +63,16 @@ awful.keyboard.append_global_keybindings({
 		{ description = "show menu", group = "awesome" }
 	),
     awful.key(
-		{ mod }, "d", function() 
+		{ mod }, "d", function()
 			awesome.emit_signal("widget::launcher")
 		end,
         { description = "show launcher", group = "awesome" }
+	),
+    awful.key(
+		{ mod }, "k", function()
+			awesome.emit_signal("widget::calendar")
+		end,
+        { description = "open calendar", group = "awesome" }
 	),
     awful.key(
 		{ mod, "Shift" }, "c", function() 

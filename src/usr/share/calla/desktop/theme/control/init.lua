@@ -40,7 +40,7 @@ local controlbox = wibox {
 
 local infobox = wibox {
 	width = dpi(470),
-	height = dpi(360),
+	height = dpi(410),
 	ontop = true,
 	visible = false,
 	bg = beautiful.bg_normal,
