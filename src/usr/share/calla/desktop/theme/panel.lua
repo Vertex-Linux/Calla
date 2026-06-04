@@ -215,23 +215,30 @@ local wifi_widget = hovercursor(wibox.widget {
 
 local function updateWifiPanel()
 	awful.spawn.easy_async_with_shell(
-		"nmcli -t -f DEVICE,STATE,CONNECTION dev 2>/dev/null | grep -i wifi | head -1",
+		-- line 1: wifi radio state ("enabled" / "disabled")
+		-- line 2: active wifi SSID if any ("yes:SSID")
+		-- line 3: ethernet connected device if any ("ethernet:connected:…")
+		"nmcli radio wifi 2>/dev/null; " ..
+		"nmcli -t -f ACTIVE,SSID dev wifi list --rescan no 2>/dev/null | grep -m1 '^yes:'; " ..
+		"nmcli -t -f TYPE,STATE dev 2>/dev/null | grep -m1 '^ethernet:connected'",
 		function(out)
-			local state, conn = out:match("[^:]+:([^:]+):([^\n]*)")
-			state = state and state:match("^%s*(.-)%s*$") or ""
-			conn  = conn  and conn :match("^%s*(.-)%s*$") or ""
-			if state:match("connect") and conn ~= "" then
-				wifi_ssid_w.text = conn
+			local radio    = out:match("enabled")
+			local wifi_ssid = out:match("yes:(.+)")
+			local ethernet = out:match("ethernet:connected")
+
+			if wifi_ssid then
+				wifi_ssid = wifi_ssid:match("^%s*(.-)%s*$")
+				wifi_ssid_w.text = "Connected"
 				wifistore = "wifion"
-			elseif state:match("disconnect") then
+			elseif ethernet then
+				wifi_ssid_w.text = "Ethernet"
+				wifistore = "wifion"
+			elseif radio then
 				wifi_ssid_w.text = "Disconnected"
 				wifistore = "wifinotconnected"
-			elseif state:match("unavailable") or state == "" then
-				wifi_ssid_w.text = "No WiFi"
-				wifistore = "wifioff"
 			else
-				wifi_ssid_w.text = "WiFi"
-				wifistore = "wifisearching"
+				wifi_ssid_w.text = "WiFi Off"
+				wifistore = "wifioff"
 			end
 			wifi_icon_w.image = createicon(wifistore)
 		end
