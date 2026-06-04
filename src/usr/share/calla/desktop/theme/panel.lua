@@ -185,10 +185,10 @@ if user.batt ~= nil then
 				table.insert(lines, line)
 			end
 			local percent = tonumber(lines[1])
-			local status  = lines[2] or ""
+			local status  = (lines[2] or ""):gsub("%s+", "")
 			if percent == nil then return end
 			batterypercent.text    = percent .. "%"
-			batterybolt.visible    = (status == "Charging")
+			batterybolt.visible    = (status == "Charging" or status == "Full")
 			if percent > 80 then
 				batterystore = "battery100"
 			elseif percent > 50 then
