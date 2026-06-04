@@ -62,8 +62,14 @@ button.suggested-action {
     color: {BG};
     border-color: {FG};
 }
+button.suggested-action label {
+    color: {BG};
+}
 button.suggested-action:hover {
     background-color: {FG80};
+    color: {BG};
+}
+button.suggested-action:hover label {
     color: {BG};
 }
 entry {
