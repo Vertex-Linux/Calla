@@ -85,6 +85,17 @@ local PAGE          = 8   -- rows visible at once
 local updateList  -- forward declaration (needed by makeRow & navBtn)
 local rebuild     -- forward declaration (needed by makeRow)
 
+net_container.buttons = {
+	awful.button({}, 4, function()
+		scroll_offset = math.max(0, scroll_offset - 1)
+		updateList()
+	end),
+	awful.button({}, 5, function()
+		scroll_offset = math.min(math.max(0, #all_networks - PAGE), scroll_offset + 1)
+		updateList()
+	end),
+}
+
 local function makeRow(net)
     local ssid_c  = net.ssid
     local sec_c   = net.secured

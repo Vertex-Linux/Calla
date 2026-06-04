@@ -629,6 +629,7 @@ screen.connect_signal("request::desktop_decoration", function(s)
 			surface = gears.surface.load_uncached(beautiful.wallpaper),
 			ratio = (s.geometry.width-dpi(20))/(s.geometry.height-dpi(60))
 		}
+		ctxmenu.border_color = beautiful.bg_focus
 	end)
 
 end)

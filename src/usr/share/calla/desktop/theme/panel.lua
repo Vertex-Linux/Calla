@@ -151,10 +151,17 @@ local batterypercent = wibox.widget {
 
 local batteryicon = iconbox({ image = "batterynone" })
 
+local batterybolt = wibox.widget {
+	text    = "⚡",
+	visible = false,
+	widget  = wibox.widget.textbox,
+}
+
 local battery = wibox.widget {
 	{
 		{
 			batteryicon,
+			batterybolt,
 			batterypercent,
 			spacing = dpi(4),
 			layout = wibox.layout.fixed.horizontal
@@ -168,25 +175,36 @@ local battery = wibox.widget {
 
 local batterystore
 if user.batt ~= nil then
-	awful.widget.watch("cat /sys/class/power_supply/" .. user.batt .. "/capacity", 15, function(widget, stdout)
-		percent = tonumber(stdout)
-		if percent == nil then return end
-		batterypercent.text = percent .. "%"
-		if percent > 80 then
-			batterystore = "battery100"
-		elseif percent > 50 then
-			batterystore = "battery80"
-		elseif percent > 25 then
-			batterystore = "battery50"
-		elseif percent > 10 then
-			batterystore = "battery25"
-		elseif percent > 5 then
-			batterystore = "battery10"
-		else
-			batterystore = "battery0"
+	awful.widget.watch(
+		"cat /sys/class/power_supply/" .. user.batt .. "/capacity && " ..
+		"cat /sys/class/power_supply/" .. user.batt .. "/status",
+		15,
+		function(widget, stdout)
+			local lines = {}
+			for line in stdout:gmatch("[^\n]+") do
+				table.insert(lines, line)
+			end
+			local percent = tonumber(lines[1])
+			local status  = lines[2] or ""
+			if percent == nil then return end
+			batterypercent.text    = percent .. "%"
+			batterybolt.visible    = (status == "Charging")
+			if percent > 80 then
+				batterystore = "battery100"
+			elseif percent > 50 then
+				batterystore = "battery80"
+			elseif percent > 25 then
+				batterystore = "battery50"
+			elseif percent > 10 then
+				batterystore = "battery25"
+			elseif percent > 5 then
+				batterystore = "battery10"
+			else
+				batterystore = "battery0"
+			end
+			batteryicon.image = createicon(batterystore)
 		end
-		batteryicon.image = createicon(batterystore)
-	end)
+	)
 end
 
 local cheatsheet = button({
