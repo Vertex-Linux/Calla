@@ -194,6 +194,53 @@ local cheatsheet = button({
 	run   = function() awesome.emit_signal("widget::cheatsheet") end,
 })
 
+local wifi_icon_w = iconbox({ image = "wifioff" })
+local wifi_ssid_w = wibox.widget { text = "WiFi", widget = wibox.widget.textbox }
+local wifistore   = "wifioff"
+
+local wifi_widget = hovercursor(wibox.widget {
+	{
+		{
+			wifi_icon_w,
+			wifi_ssid_w,
+			spacing = dpi(4),
+			layout  = wibox.layout.fixed.horizontal,
+		},
+		left = dpi(8), right = dpi(8),
+		widget = wibox.container.margin,
+	},
+	buttons = { awful.button({}, 1, function() awesome.emit_signal("widget::wifi") end) },
+	widget  = background({ bg = "bgmid", fg = "fg" }),
+})
+
+local function updateWifiPanel()
+	awful.spawn.easy_async_with_shell(
+		"nmcli -t -f DEVICE,STATE,CONNECTION dev 2>/dev/null | grep -i wifi | head -1",
+		function(out)
+			local state, conn = out:match("[^:]+:([^:]+):([^\n]*)")
+			state = state and state:match("^%s*(.-)%s*$") or ""
+			conn  = conn  and conn :match("^%s*(.-)%s*$") or ""
+			if state:match("connect") and conn ~= "" then
+				wifi_ssid_w.text = conn
+				wifistore = "wifion"
+			elseif state:match("disconnect") then
+				wifi_ssid_w.text = "Disconnected"
+				wifistore = "wifinotconnected"
+			elseif state:match("unavailable") or state == "" then
+				wifi_ssid_w.text = "No WiFi"
+				wifistore = "wifioff"
+			else
+				wifi_ssid_w.text = "WiFi"
+				wifistore = "wifisearching"
+			end
+			wifi_icon_w.image = createicon(wifistore)
+		end
+	)
+end
+
+updateWifiPanel()
+gears.timer { timeout = 10, autostart = true, callback = updateWifiPanel }
+
 local clock = wibox.widget {
 	{
 		{
@@ -280,16 +327,18 @@ local function applyPanelVisibility()
 	battery.visible     = user.panel_battery     ~= false
 	clock.visible       = user.panel_clock       ~= false
 	dock.visible        = user.panel_dock        ~= false
-	cheatsheet.visible  = user.panel_cheatsheet  ~= false
+	cheatsheet.visible   = user.panel_cheatsheet  ~= false
+	wifi_widget.visible  = user.panel_wifi        ~= false
 end
 
 applyPanelVisibility()
 
 awesome.connect_signal("live::reload", function()
 	if systraystore then systraybutton.image = createicon(systraystore) end
-	if playerstore then media:get_children_by_id("icon")[1].image = createicon(playerstore) end
-	if volumestore then volumeicon.image = createicon(volumestore) end
+	if playerstore  then media:get_children_by_id("icon")[1].image = createicon(playerstore) end
+	if volumestore  then volumeicon.image = createicon(volumestore) end
 	if batterystore then batteryicon.image = createicon(batterystore) end
+	if wifistore    then wifi_icon_w.image = createicon(wifistore) end
 	taglist._do_taglist_update_now()
 	tag.emit_signal("property::layout", awful.screen.focused().selected_tag)
 	applyPanelVisibility()
@@ -309,6 +358,7 @@ return wibox.widget {
 			{
 				systray,
 				cheatsheet,
+				wifi_widget,
 				hovercursor(wibox.widget {
 					media,
 					volume,

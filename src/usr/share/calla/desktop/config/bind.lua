@@ -75,6 +75,12 @@ awful.keyboard.append_global_keybindings({
         { description = "open calendar", group = "awesome" }
 	),
     awful.key(
+		{ mod }, "i", function()
+			awesome.emit_signal("widget::info")
+		end,
+        { description = "system info", group = "awesome" }
+	),
+    awful.key(
 		{ mod, "Shift" }, "c", function() 
 			awesome.emit_signal("widget::config")
 		end,

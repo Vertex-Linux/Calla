@@ -26,6 +26,7 @@ local groups = {
             { mods = { mod },           key = "Space",  desc = "Control center"    },
             { mods = { mod },           key = "d",      desc = "App launcher"      },
             { mods = { mod },           key = "k",      desc = "Calendar"          },
+            { mods = { mod },           key = "i",      desc = "System info"       },
             { mods = { mod, "Shift" },  key = "c",      desc = "Settings"          },
             { mods = { mod },           key = "l",      desc = "Lock screen"       },
             { mods = { mod },           key = "F1",     desc = "Help popup"        },

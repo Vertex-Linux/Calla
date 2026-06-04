@@ -1,1 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#5f6368"><path d="M180-180q-24 0-42-18t-18-42v-480q0-24 18-42t42-18h600q24 0 42 18t18 42v480q0 24-18 42t-42 18H180Zm0-60h600v-480H180v480Zm140-130h320v-60H320v60ZM220-430h80v-80h-80v80Zm140 0h80v-80h-80v80Zm140 0h80v-80h-80v80Zm140 0h80v-80h-80v80Zm-360-150h80v-80h-80v80Zm140 0h80v-80h-80v80Zm140 0h80v-80h-80v80Zm140 0h80v-80h-80v80ZM180-240v-480 480Z"/></svg>
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<mask id="path-1-inside-1_1787_2" fill="white">
+<rect x="3" y="4" width="18" height="16" rx="1.2"/>
+</mask>
+<rect x="3" y="4" width="18" height="16" rx="1.2" stroke="#5F6368" stroke-width="4" mask="url(#path-1-inside-1_1787_2)"/>
+<rect x="6" y="7" width="2" height="2" fill="#5F6368"/>
+<rect x="9" y="7" width="2" height="2" fill="#5F6368"/>
+<rect x="12" y="7" width="2" height="2" fill="#5F6368"/>
+<rect x="15" y="7" width="2" height="2" fill="#5F6368"/>
+<rect x="7" y="10" width="2" height="2" fill="#5F6368"/>
+<rect x="10" y="10" width="2" height="2" fill="#5F6368"/>
+<rect x="13" y="10" width="2" height="2" fill="#5F6368"/>
+<rect x="16" y="10" width="2" height="2" fill="#5F6368"/>
+<rect x="8" y="14" width="9" height="2" fill="#5F6368"/>
+</svg>

@@ -49,3 +49,8 @@ Calla (made by [Stardust-kyun](https://github.com/stardust-kyun)) is the second 
 - [Crylia](https://github.com/Crylia) for massive amounts of help learning awesomewm.
 - [Jimmy](https://github.com/Jimmysit0) and [Petrolblue](https://github.com/petrolblue) for help with color schemes and lots of support.
 - And the support of many more!
+
+---
+
+# "Co Autherd by Copilot" note:
+I am not using Copilot for any of these releases, this is simply a VSCode bug that if you had the agent menu open at ANY TIME during the creation of the repo, it just puts that there, and because the agent menu opens by defualt on VSCode, that is just always there.

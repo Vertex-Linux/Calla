@@ -164,3 +164,21 @@ require("theme.preview")
 require("theme.control")
 require("theme.calendar_app")
 require("theme.cheatsheet_app")
+require("theme.info_app")
+
+local gtk_css = require("theme.gtk_css")
+gtk_css.apply()
+awesome.connect_signal("live::reload", function() gtk_css.apply() end)
+
+local function applyDPMS()
+	local awful = require("awful")
+	if user.dpms_enabled == false then
+		awful.spawn.with_shell("xset -dpms s off")
+	else
+		local s = (user.dpms_timeout or 10) * 60
+		awful.spawn.with_shell(string.format("xset dpms %d %d %d s %d", s, s, s, s))
+	end
+end
+
+applyDPMS()
+awesome.connect_signal("live::reload", applyDPMS)

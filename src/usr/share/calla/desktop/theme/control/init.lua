@@ -3,6 +3,8 @@ local wibox = require("wibox")
 local beautiful = require("beautiful")
 local dpi = beautiful.xresources.apply_dpi
 
+require("theme.control.wifi")
+
 local media = require("theme.control.media")
 local sliders = require("theme.control.sliders")
 local toggles = require("theme.control.toggles")
@@ -64,9 +66,17 @@ local infobox = wibox {
 	}
 }
 
+awesome.connect_signal("widget::control::close", function()
+	controlbox.visible = false
+	infobox.visible    = false
+end)
+
 awesome.connect_signal("widget::control", function()
+	if not controlbox.visible then          -- opening → close WiFi first
+		awesome.emit_signal("widget::wifi::close")
+	end
 	controlbox.visible = not controlbox.visible
-	infobox.visible = not infobox.visible
+	infobox.visible    = not infobox.visible
 
 	if client.focus and client.focus.fullscreen == true then
 		awful.placement.bottom_right(
