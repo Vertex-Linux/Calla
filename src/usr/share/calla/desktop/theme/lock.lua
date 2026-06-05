@@ -3,25 +3,42 @@ local wibox = require("wibox")
 local gears = require("gears")
 local beautiful = require("beautiful")
 local dpi = beautiful.xresources.apply_dpi
-local pampath = "/usr/lib/lua-pam/liblua_pam.so"
-
 -- Authentication
+-- Writes the password to a temp file then pipes it through cat into
+-- unix_chkpwd. Using cat|unix_chkpwd gives unix_chkpwd a proper pipe as
+-- stdin (S_ISFIFO), which is exactly how pam_unix calls it. Plain file
+-- redirects via os.execute inherit AwesomeWM's closed stdin and deliver
+-- 0 bytes. awful.spawn.easy_async_with_shell is used so the callback runs
+-- on AwesomeWM's event loop with correct fd inheritance.
 
-local authenticate
-local _pamfile = io.open(pampath, "rb")
-if _pamfile then
-	_pamfile:close()
-	local ok, pam = pcall(require, "liblua_pam")
-	if ok then
-		authenticate = function(password)
-			return pam.auth_current_user(password)
+local function authenticate_async(password, callback)
+	local username = (os.getenv("USER") or ""):gsub("[^%w_%-]", "")
+	if username == "" then
+		-- fallback: settings password
+		callback(user.passwd ~= nil and password == user.passwd)
+		return
+	end
+	local tmp = os.tmpname()
+	local f = io.open(tmp, "w")
+	if not f then
+		callback(user.passwd ~= nil and password == user.passwd)
+		return
+	end
+	f:write(password)
+	f:close()
+	awful.spawn.easy_async_with_shell(
+		"cat " .. tmp .. " | /usr/sbin/unix_chkpwd " .. username .. " nullok 2>/dev/null; echo $?",
+		function(out)
+			os.remove(tmp)
+			local code = tonumber(out:match("%d+"))
+			if code == 0 then
+				callback(true)
+			else
+				-- fallback: settings password
+				callback(user.passwd ~= nil and password == user.passwd)
+			end
 		end
-	end
-end
-if not authenticate then
-	authenticate = function(password)
-		return password == user.passwd
-	end
+	)
 end
 
 -- Variables
@@ -66,7 +83,8 @@ screen.connect_signal("request::desktop_decoration", function(s)
 	local batterystore
 	if user.batt ~= nil then
 		awful.widget.watch("cat /sys/class/power_supply/" .. user.batt .. "/capacity", 15, function(widget, stdout)
-			percent = tonumber(stdout)
+			local percent = tonumber(stdout)
+			if percent == nil then return end
 			batterypercent.text = percent .. "%"
 			if percent > 80 then
 				batterystore = "battery100"
@@ -331,17 +349,16 @@ local function grabpassword()
 			end
 		end,
 		exe_callback = function(input)
-			--[[ Why doesn't this work?
-			characters = 0
 			prompt.markup = markup({ text = "Authenticating...", fg = "fg" })
-			--]]
-			if authenticate(input) then
-				reset()
-				awesome.emit_signal("lockscreen::visible", false)
-			else
-				fail()
-				grabpassword()
-			end
+			authenticate_async(input, function(ok)
+				if ok then
+					reset()
+					awesome.emit_signal("lockscreen::visible", false)
+				else
+					fail()
+					grabpassword()
+				end
+			end)
 		end,
 		textbox = wibox.widget.textbox()
 	}
