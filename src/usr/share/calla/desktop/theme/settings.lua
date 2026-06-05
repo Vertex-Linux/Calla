@@ -998,6 +998,22 @@ function app:on_startup()
 		writejson(require("gears").filesystem.get_cache_dir() .. "user.json", settings)
 		user = copytable(settings)
 
+		-- Sync avatar system-wide so SDDM and other apps pick it up.
+		-- ~/.face.icon  : read directly by many display managers
+		-- AccountsService: SDDM's canonical source; SetIconFile uses polkit so no hardcoded sudo
+		if settings.avatar and settings.avatar ~= "" then
+			local src = settings.avatar:gsub("~", os.getenv("HOME"))
+			require("awful").spawn.with_shell(
+				"_src='" .. src .. "'; " ..
+				"cp -- \"$_src\" ~/.face.icon; " ..
+				"gdbus call --system " ..
+				"  --dest org.freedesktop.Accounts " ..
+				"  --object-path /org/freedesktop/Accounts/User$(id -u) " ..
+				"  --method org.freedesktop.Accounts.User.SetIconFile " ..
+				"  \"$_src\" 2>/dev/null || true"
+			)
+		end
+
 		writejson(require("gears").filesystem.get_cache_dir() .. "color/" .. settings.color .. "/" .. settings.color .. ".json", color)
 
 		awesome.emit_signal("color::change", color)
