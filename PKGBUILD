@@ -25,5 +25,7 @@ package() {
   mkdir -p "${pkgdir}/usr/"
   cp -r "${srcdir}/usr/bin" "${pkgdir}/usr/"
   cp -r "${srcdir}/usr/share" "${pkgdir}/usr/"
+  mkdir -p "${pkgdir}/etc/pam.d"
+  cp "${srcdir}/etc/pam.d/awesome" "${pkgdir}/etc/pam.d/awesome"
 }
 

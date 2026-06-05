@@ -4,41 +4,32 @@ local gears = require("gears")
 local beautiful = require("beautiful")
 local dpi = beautiful.xresources.apply_dpi
 -- Authentication
--- Writes the password to a temp file then pipes it through cat into
--- unix_chkpwd. Using cat|unix_chkpwd gives unix_chkpwd a proper pipe as
--- stdin (S_ISFIFO), which is exactly how pam_unix calls it. Plain file
--- redirects via os.execute inherit AwesomeWM's closed stdin and deliver
--- 0 bytes. awful.spawn.easy_async_with_shell is used so the callback runs
--- on AwesomeWM's event loop with correct fd inheritance.
+-- Calla ships its own liblua_pam.so compiled against the "awesome" PAM
+-- service. "awesome" routes to pam_unix.so only — no pam_faillock, no crash.
+-- The system lua-pam uses "login" which chains through pam_faillock and
+-- causes a crash. package.loadlib loads the .so from an explicit path;
+-- require() cannot be used with full paths for C modules.
+-- /etc/pam.d/awesome is installed by this package (see PKGBUILD).
+-- Falls back to user.passwd (Settings → User) if PAM unavailable.
 
-local function authenticate_async(password, callback)
-	local username = (os.getenv("USER") or ""):gsub("[^%w_%-]", "")
-	if username == "" then
-		-- fallback: settings password
-		callback(user.passwd ~= nil and password == user.passwd)
-		return
+local _pam
+local _pam_loader, _pam_load_err = package.loadlib(
+	"/usr/share/calla/desktop/liblua_pam.so", "luaopen_liblua_pam")
+if _pam_loader then
+	local ok, lib = pcall(_pam_loader)
+	if ok then _pam = lib end
+end
+
+local function authenticate(password)
+	local dbg = io.open("/tmp/calla_lock_debug.txt", "a")
+	if _pam then
+		local result = _pam.auth_current_user(password)
+		if dbg then dbg:write("pam_result="..tostring(result).."\n"); dbg:close() end
+		if result then return true end
+	else
+		if dbg then dbg:write("pam=nil  load_err="..tostring(_pam_load_err).."\n"); dbg:close() end
 	end
-	local tmp = os.tmpname()
-	local f = io.open(tmp, "w")
-	if not f then
-		callback(user.passwd ~= nil and password == user.passwd)
-		return
-	end
-	f:write(password)
-	f:close()
-	awful.spawn.easy_async_with_shell(
-		"cat " .. tmp .. " | /usr/sbin/unix_chkpwd " .. username .. " nullok 2>/dev/null; echo $?",
-		function(out)
-			os.remove(tmp)
-			local code = tonumber(out:match("%d+"))
-			if code == 0 then
-				callback(true)
-			else
-				-- fallback: settings password
-				callback(user.passwd ~= nil and password == user.passwd)
-			end
-		end
-	)
+	return user.passwd ~= nil and user.passwd ~= "" and password == user.passwd
 end
 
 -- Variables
@@ -298,7 +289,9 @@ if user.display_name and user.display_name ~= "" then
 	buildPromptbox(user.display_name)
 else
 	awful.spawn.easy_async_with_shell("getent passwd $(whoami) | cut -d ':' -f 5", function(out)
-		buildPromptbox(out:gsub(",", ""):gsub("\n", ""))
+		local name = out:gsub(",", ""):gsub("\n", "")
+		if name == "" then name = os.getenv("USER") or "User" end
+		buildPromptbox(name)
 	end)
 end
 
@@ -349,16 +342,13 @@ local function grabpassword()
 			end
 		end,
 		exe_callback = function(input)
-			prompt.markup = markup({ text = "Authenticating...", fg = "fg" })
-			authenticate_async(input, function(ok)
-				if ok then
-					reset()
-					awesome.emit_signal("lockscreen::visible", false)
-				else
-					fail()
-					grabpassword()
-				end
-			end)
+			if authenticate(input) then
+				reset()
+				awesome.emit_signal("lockscreen::visible", false)
+			else
+				fail()
+				grabpassword()
+			end
 		end,
 		textbox = wibox.widget.textbox()
 	}
