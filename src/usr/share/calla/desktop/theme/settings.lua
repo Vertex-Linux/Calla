@@ -203,7 +203,6 @@ local function doGeneral()
 		{ settingsEntry("Reboot", "reboot", "systemctl reboot"), top_attach = 2, left_attach = 0 },
 		{ settingsEntry("Font", "font", "Roboto Medium 11"), top_attach = 0, left_attach = 1 },
 		{ settingsEntry("Alt Font", "fontalt", "Roboto Bold 11"), top_attach = 1, left_attach = 1 },
-		{ settingsEntry("Fallback Password", "passwd", "awesomewm"), top_attach = 3, left_attach = 0 },
 		{ settingsEntry("Battery", "batt", "BAT0"), top_attach = 2, left_attach = 1 },
 		{ wallpaper(), top_attach = 3, left_attach = 1 },
 		{ settingsEntry("temp", "temp", "temp"), top_attach = 4, left_attach = 1 },
@@ -808,6 +807,118 @@ local function doAudio()
 
 end
 
+-- ── User tab ──────────────────────────────────────────────────────────────────
+
+local function doUser()
+
+	local outer = Gtk.Box({
+		orientation = Gtk.Orientation.VERTICAL,
+		spacing     = dpi(14),
+		margin      = dpi(20),
+	})
+
+	-- Avatar
+	local avatar_frame = Gtk.Frame({ label = "Profile Photo" })
+	local avatar_grid  = Gtk.Grid({
+		column_spacing = dpi(12),
+		row_spacing    = dpi(8),
+		margin         = dpi(12),
+	})
+
+	local preview = Gtk.Image({ width_request = dpi(64), height_request = dpi(64) })
+	local function loadPreview(path)
+		if not path or path == "" then preview:clear(); return end
+		local full = path:gsub("~", os.getenv("HOME"))
+		local ok, pb = pcall(GdkPixbuf.Pixbuf.new_from_file_at_scale, full, dpi(64), dpi(64), true)
+		if ok and pb then preview:set_from_pixbuf(pb) end
+	end
+	loadPreview(settings.avatar)
+
+	local img_filter = Gtk.FileFilter()
+	img_filter:add_pattern("*.png")
+	img_filter:add_pattern("*.jpg")
+	img_filter:add_pattern("*.jpeg")
+	img_filter:add_pattern("*.JPG")
+
+	local avatar_chooser = Gtk.FileChooserButton({
+		filter = img_filter,
+		title  = "Choose Profile Photo",
+		width  = dpi(220),
+	})
+	if settings.avatar then
+		avatar_chooser:set_file(Gio.File.new_for_path(settings.avatar:gsub("~", os.getenv("HOME"))))
+	end
+	function avatar_chooser:on_file_set()
+		local path = self:get_filename()
+		settings.avatar = path:gsub(os.getenv("HOME"), "~")
+		loadPreview(settings.avatar)
+	end
+
+	local clear_btn = Gtk.Button.new_with_label("Clear")
+	function clear_btn:on_clicked()
+		settings.avatar = nil
+		avatar_chooser:set_file(Gio.File.new_for_path(""))
+		preview:clear()
+	end
+
+	avatar_grid:attach(preview,        0, 0, 1, 2)
+	avatar_grid:attach(avatar_chooser, 1, 0, 1, 1)
+	avatar_grid:attach(clear_btn,      1, 1, 1, 1)
+	avatar_frame:add(avatar_grid)
+	outer:add(avatar_frame)
+
+	-- Identity
+	local id_frame = Gtk.Frame({ label = "Identity" })
+	local id_grid  = Gtk.Grid({
+		column_spacing = dpi(12),
+		row_spacing    = dpi(10),
+		margin         = dpi(12),
+	})
+
+	local name_entry = Gtk.Entry({
+		text             = settings.display_name or "",
+		placeholder_text = "Leave blank to use system account name",
+		hexpand          = true,
+		width_request    = dpi(230),
+	})
+	function name_entry:on_changed()
+		local t = self:get_text()
+		settings.display_name = (t ~= "") and t or nil
+	end
+
+	local passwd_entry = Gtk.Entry({
+		placeholder_text = "Enter new lock screen password",
+		visibility       = false,
+		hexpand          = true,
+		width_request    = dpi(230),
+	})
+	local show_check = Gtk.CheckButton({ label = "Show" })
+	function show_check:on_toggled()
+		passwd_entry:set_visibility(not passwd_entry:get_visibility())
+	end
+	function passwd_entry:on_changed()
+		local t = self:get_text()
+		if t ~= "" then settings.passwd = t end
+	end
+
+	local passwd_box = Gtk.Box({ orientation = Gtk.Orientation.HORIZONTAL, spacing = dpi(6) })
+	passwd_box:pack_start(passwd_entry, true,  true,  0)
+	passwd_box:pack_start(show_check,  false, false, 0)
+
+	id_grid:attach(Gtk.Label({ label = "Display Name",          halign = Gtk.Align.START, hexpand = true }), 0, 0, 1, 1)
+	id_grid:attach(name_entry,  1, 0, 1, 1)
+	id_grid:attach(Gtk.Label({ label = "Lock Screen Password",  halign = Gtk.Align.START }), 0, 1, 1, 1)
+	id_grid:attach(passwd_box,  1, 1, 1, 1)
+	id_frame:add(id_grid)
+	outer:add(id_frame)
+
+	local scroll = Gtk.ScrolledWindow()
+	scroll:set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+	scroll:add(outer)
+	return scroll
+
+end
+
 -- ── Restart dialog ────────────────────────────────────────────────────────────
 
 local function restartdialog()
@@ -855,6 +966,7 @@ function app:on_startup()
 	stack:add_titled(doPanel(),   "panel",   "Panel")
 	stack:add_titled(doDisplay(), "display", "Display")
 	stack:add_titled(doAudio(),   "audio",   "Audio")
+	stack:add_titled(doUser(),    "user",    "User")
 
 	local saveButton = Gtk.Button({ label = "Save", halign = Gtk.Align.END, margin_end = dpi(20) })
 

@@ -221,14 +221,21 @@ local promptbox = wibox {
 	visible = false
 }
 
-awful.spawn.easy_async_with_shell("getent passwd $(whoami) | cut -d ':' -f 5", function(out)
+local function buildPromptbox(name)
+	local avatar_widget
+	if user.avatar and user.avatar ~= "" then
+		avatar_widget = wibox.widget.imagebox(user.avatar:gsub("~", os.getenv("HOME")))
+	else
+		avatar_widget = live(wibox.widget.imagebox, { image = "calla" })
+	end
+
 	promptbox:setup {
 		{
 			{
 				{
 					{
 						{
-							live(wibox.widget.imagebox, { image = "calla" }),
+							avatar_widget,
 							forced_height = dpi(24),
 							margins = dpi(5),
 							widget = wibox.container.margin
@@ -237,7 +244,7 @@ awful.spawn.easy_async_with_shell("getent passwd $(whoami) | cut -d ':' -f 5", f
 					},
 					{
 						font = user.font:gsub("%d+", "24"),
-						widget = colortext({ text = out:gsub(",", ""):gsub("\n", "") })
+						widget = colortext({ text = name })
 					},
 					spacing = dpi(10),
 					layout = wibox.layout.fixed.horizontal
@@ -267,7 +274,15 @@ awful.spawn.easy_async_with_shell("getent passwd $(whoami) | cut -d ':' -f 5", f
 		},
 		widget = background({ bg = "bg" })
 	}
-end)
+end
+
+if user.display_name and user.display_name ~= "" then
+	buildPromptbox(user.display_name)
+else
+	awful.spawn.easy_async_with_shell("getent passwd $(whoami) | cut -d ':' -f 5", function(out)
+		buildPromptbox(out:gsub(",", ""):gsub("\n", ""))
+	end)
+end
 
 awful.placement.centered(promptbox)
 
