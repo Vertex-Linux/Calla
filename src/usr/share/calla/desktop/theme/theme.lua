@@ -101,7 +101,9 @@ theme.calla = gears.color.recolor_image(iconpath .. "calla.png", color.fg)
 
 -- Profile picture
 
-if gears.filesystem.file_readable(iconpath .. "pfp.png") then
+if user and user.avatar and user.avatar ~= "" then
+	theme.pfp = user.avatar:gsub("~", os.getenv("HOME"))
+elseif gears.filesystem.file_readable(iconpath .. "pfp.png") then
 	theme.pfp = iconpath .. "pfp.png"
 else
 	theme.pfp = theme.calla
