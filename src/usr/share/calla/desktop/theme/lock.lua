@@ -330,11 +330,11 @@ local function grabpassword()
 		keypressed_callback  = function(mod, key, cmd)
 			if #key == 1 then
 				characters = characters + 1
-				prompt.markup = markup({ text = string.rep("", characters), fg = "fg" })
+				prompt.markup = markup({ text = string.rep("•", characters), fg = "fg" })
 			elseif key == "BackSpace" then
 				if characters > 1 then
 					characters = characters - 1
-					prompt.markup = markup({ text = string.rep("", characters), fg = "fg" })
+					prompt.markup = markup({ text = string.rep("•", characters), fg = "fg" })
 				else
 					characters = 0
 					prompt.markup = markup({ text = "Enter Password", fg = "fg" })
