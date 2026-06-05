@@ -8,18 +8,21 @@ local pampath = "/usr/lib/lua-pam/liblua_pam.so"
 -- Authentication
 
 local authenticate
-awful.spawn.easy_async_with_shell("stat "..pampath.." >/dev/null 2>&1", function (_, _, _, exitcode)
-	if exitcode == 0 then
-		local pam = require("liblua_pam")
+local _pamfile = io.open(pampath, "rb")
+if _pamfile then
+	_pamfile:close()
+	local ok, pam = pcall(require, "liblua_pam")
+	if ok then
 		authenticate = function(password)
 			return pam.auth_current_user(password)
 		end
-	else
-		authenticate = function(password)
-			return password == user.passwd
-		end
 	end
-end)
+end
+if not authenticate then
+	authenticate = function(password)
+		return password == user.passwd
+	end
+end
 
 -- Variables
 

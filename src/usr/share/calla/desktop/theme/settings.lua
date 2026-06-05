@@ -675,10 +675,21 @@ local function doDisplay()
 	spin_box:pack_start(timeout_spin, false, false, 0)
 	spin_box:pack_start(Gtk.Label({ label = "minutes" }), false, false, 0)
 
+	local lock_wake_switch = Gtk.Switch({
+		active = settings.lock_on_wake == true,
+		valign = Gtk.Align.CENTER,
+	})
+	function lock_wake_switch:on_state_set(state)
+		settings.lock_on_wake = state
+		return false
+	end
+
 	power_grid:attach(Gtk.Label({ label = "Enable display timeout", halign = Gtk.Align.START, hexpand = true }), 0, 0, 1, 1)
-	power_grid:attach(dpms_switch, 1, 0, 1, 1)
+	power_grid:attach(dpms_switch,      1, 0, 1, 1)
 	power_grid:attach(Gtk.Label({ label = "Turn off after",         halign = Gtk.Align.START }), 0, 1, 1, 1)
-	power_grid:attach(spin_box,    1, 1, 1, 1)
+	power_grid:attach(spin_box,         1, 1, 1, 1)
+	power_grid:attach(Gtk.Label({ label = "Lock on wake",           halign = Gtk.Align.START }), 0, 2, 1, 1)
+	power_grid:attach(lock_wake_switch, 1, 2, 1, 1)
 	power_frame:add(power_grid)
 	outer:add(power_frame)
 

@@ -102,6 +102,7 @@ local defaults = {
 	panel_battery  = true,
 	panel_clock    = true,
 	panel_dock     = true,
+	lock_on_wake   = false,
 }
 
 if not gears.filesystem.file_readable(config) then
@@ -173,6 +174,51 @@ if not restarted() then
 		awesome.emit_signal("widget::lockscreen")
 	end
 end
+
+-- Lock on wake (DPMS watcher)
+
+local dpms_was_off       = false
+local dpms_watcher_timer = nil
+
+local function startLockWatcher()
+	if dpms_watcher_timer then return end
+	dpms_was_off = false
+	dpms_watcher_timer = gears.timer {
+		timeout   = 2,
+		autostart = true,
+		callback  = function()
+			awful.spawn.easy_async_with_shell(
+				"xset q 2>/dev/null | grep 'Monitor is'",
+				function(out)
+					local is_off = out:match("Monitor is Off") ~= nil
+					if dpms_was_off and not is_off then
+						require("theme.lock")
+						awesome.emit_signal("widget::lockscreen")
+					end
+					dpms_was_off = is_off
+				end
+			)
+		end
+	}
+end
+
+local function stopLockWatcher()
+	if dpms_watcher_timer then
+		dpms_watcher_timer:stop()
+		dpms_watcher_timer = nil
+		dpms_was_off = false
+	end
+end
+
+if user.lock_on_wake then startLockWatcher() end
+
+awesome.connect_signal("live::reload", function()
+	if user.lock_on_wake then
+		startLockWatcher()
+	else
+		stopLockWatcher()
+	end
+end)
 
 -- Theme Init
 
