@@ -151,17 +151,28 @@ local batterypercent = wibox.widget {
 
 local batteryicon = iconbox({ image = "batterynone" })
 
-local batterybolt = wibox.widget {
-	text    = "⚡",
-	visible = false,
-	widget  = wibox.widget.textbox,
+local boltpath = gears.filesystem.get_configuration_dir() .. "theme/icons/bolt.svg"
+local boltwidget = wibox.widget {
+	image         = boltpath,
+	visible       = false,
+	forced_width  = dpi(18),
+	forced_height = dpi(18),
+	upscale       = false,
+	downscale     = true,
+	valign        = "center",
+	halign        = "center",
+	widget        = wibox.widget.imagebox,
 }
 
 local battery = wibox.widget {
 	{
 		{
-			batteryicon,
-			batterybolt,
+			-- Stack bolt SVG directly over the battery icon
+			{
+				batteryicon,
+				boltwidget,
+				layout = wibox.layout.stack,
+			},
 			batterypercent,
 			spacing = dpi(4),
 			layout = wibox.layout.fixed.horizontal
@@ -176,9 +187,9 @@ local battery = wibox.widget {
 local batterystore
 if user.batt ~= nil then
 	awful.widget.watch(
-		"cat /sys/class/power_supply/" .. user.batt .. "/capacity && " ..
-		"cat /sys/class/power_supply/" .. user.batt .. "/status",
-		15,
+		"bash -c 'cat /sys/class/power_supply/" .. user.batt .. "/capacity; " ..
+		"cat /sys/class/power_supply/" .. user.batt .. "/status'",
+		5,
 		function(widget, stdout)
 			local lines = {}
 			for line in stdout:gmatch("[^\n]+") do
@@ -187,8 +198,8 @@ if user.batt ~= nil then
 			local percent = tonumber(lines[1])
 			local status  = (lines[2] or ""):gsub("%s+", "")
 			if percent == nil then return end
-			batterypercent.text    = percent .. "%"
-			batterybolt.visible    = (status == "Charging" or status == "Full")
+			batterypercent.text = percent .. "%"
+			boltwidget.visible  = (status == "Charging" or status == "Full")
 			if percent > 80 then
 				batterystore = "battery100"
 			elseif percent > 50 then
