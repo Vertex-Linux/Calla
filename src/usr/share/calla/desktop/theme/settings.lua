@@ -198,7 +198,7 @@ local function doGeneral()
 		margin = dpi(20),
 		halign = Gtk.Align.CENTER,
 
-		{ settingsEntry("Terminal", "terminal", "vertex-term"), top_attach = 0, left_attach = 0 },
+		{ settingsEntry("Terminal", "terminal", "st"), top_attach = 0, left_attach = 0 },
 		{ settingsEntry("Shutdown", "shutdown", "systemctl poweroff"), top_attach = 1, left_attach = 0 },
 		{ settingsEntry("Reboot", "reboot", "systemctl reboot"), top_attach = 2, left_attach = 0 },
 		{ settingsEntry("Font", "font", "Roboto Medium 11"), top_attach = 0, left_attach = 1 },
