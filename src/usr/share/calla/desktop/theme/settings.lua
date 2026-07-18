@@ -22,6 +22,11 @@ end
 
 local settings = copytable(user)
 
+settings.autostart_apps = {}
+for _, app in ipairs(user.autostart_apps or {}) do
+	table.insert(settings.autostart_apps, { name = app.name, command = app.command, enabled = app.enabled })
+end
+
 local color
 
 local function genColor()
@@ -470,6 +475,7 @@ local function doPanel()
 		panelSwitch("Battery",    "panel_battery"),
 		panelSwitch("Clock",      "panel_clock"),
 		panelSwitch("Cheatsheet", "panel_cheatsheet"),
+		panelSwitch("Clipboard",  "panel_clipboard"),
 	})
 
 	local grid = Gtk.Grid({
@@ -487,6 +493,94 @@ local function doPanel()
 
 end
 
+local function doAutostart()
+
+	local list_box = Gtk.Box({ orientation = Gtk.Orientation.VERTICAL, spacing = dpi(8) })
+
+	local function clear(container)
+		container:foreach(function(w) w:destroy() end)
+	end
+
+	local rebuild
+
+	local function addRow(entry)
+		local label = Gtk.Label({
+			label = (entry.name and entry.name ~= "") and entry.name or entry.command,
+			halign = Gtk.Align.START,
+			hexpand = true,
+		})
+		local switch = Gtk.Switch({ active = entry.enabled ~= false, valign = Gtk.Align.CENTER })
+		function switch:on_state_set(state)
+			entry.enabled = state
+			return false
+		end
+		local remove = Gtk.Button.new_with_label("✕")
+		function remove:on_clicked()
+			for i, e in ipairs(settings.autostart_apps) do
+				if e == entry then table.remove(settings.autostart_apps, i); break end
+			end
+			rebuild()
+		end
+		local row = Gtk.Box({
+			orientation = Gtk.Orientation.HORIZONTAL,
+			spacing = dpi(10),
+			label,
+			switch,
+			remove,
+		})
+		list_box:add(row)
+	end
+
+	rebuild = function()
+		clear(list_box)
+		for _, entry in ipairs(settings.autostart_apps) do
+			addRow(entry)
+		end
+		list_box:show_all()
+	end
+
+	rebuild()
+
+	local name_entry = Gtk.Entry({ placeholder_text = "Name", width = dpi(150) })
+	local command_entry = Gtk.Entry({ placeholder_text = "Command", width = dpi(200), hexpand = true })
+	local add_button = Gtk.Button.new_with_label("Add")
+	function add_button:on_clicked()
+		if command_entry.text ~= "" then
+			table.insert(settings.autostart_apps, {
+				name = name_entry.text,
+				command = command_entry.text,
+				enabled = true,
+			})
+			name_entry.text = ""
+			command_entry.text = ""
+			rebuild()
+		end
+	end
+
+	local add_row = Gtk.Box({
+		orientation = Gtk.Orientation.HORIZONTAL,
+		spacing = dpi(10),
+		name_entry,
+		command_entry,
+		add_button,
+	})
+
+	local outer = Gtk.Box({
+		orientation = Gtk.Orientation.VERTICAL,
+		spacing = dpi(14),
+		margin = dpi(20),
+	})
+	outer:add(list_box)
+	outer:add(Gtk.Separator({ orientation = Gtk.Orientation.HORIZONTAL }))
+	outer:add(add_row)
+
+	local scroll = Gtk.ScrolledWindow()
+	scroll:set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+	scroll:add(outer)
+	return scroll
+
+end
+
 -- ── Display helpers ───────────────────────────────────────────────────────────
 
 local function getDisplays()
@@ -497,9 +591,12 @@ local function getDisplays()
 		local name = line:match("^(%S+) connected")
 		if name then
 			if current then table.insert(displays, current) end
-			current = { name = name, cur_res = nil, cur_rate = nil, modes = {} }
+			current = { name = name, cur_res = nil, cur_rate = nil, modes = {}, primary = false, rotation = "normal" }
 			local cw, ch = line:match("(%d+)x(%d+)%+%d+%+%d+")
 			if cw then current.cur_res = cw .. "x" .. ch end
+			current.primary = line:match("^%S+ connected primary ") ~= nil
+			local rot = line:match("%d+x%d+%+%d+%+%d+%s+(%a+)%s*%(")
+			current.rotation = rot or "normal"
 		elseif current then
 			local res = line:match("^%s+(%d+x%d+)")
 			if res then
@@ -580,6 +677,10 @@ local function doDisplay()
 		return outer
 	end
 
+	local frames = {}
+	local ROTATIONS = { "normal", "left", "right", "inverted" }
+	local RELATIONS = { [1] = "--left-of", [2] = "--right-of", [3] = "--above", [4] = "--below", [5] = "--same-as" }
+
 	for _, disp in ipairs(displays) do
 		local frame = Gtk.Frame({ label = disp.name })
 		local grid  = Gtk.Grid({
@@ -620,28 +721,101 @@ local function doDisplay()
 
 		function res_combo:on_changed() fillRates(self:get_active()) end
 
-		local apply = Gtk.Button({ label = "Apply" })
-		function apply:on_clicked()
-			local ri  = res_combo:get_active()
-			local rti = rate_combo:get_active()
-			local mode = disp.modes[ri + 1]
-			if not mode then return end
-			local rate = mode.rates[rti + 1]
-			local cmd  = "xrandr --output " .. disp.name ..
-			             " --mode " .. mode.res ..
-			             (rate and (" --rate " .. rate) or "")
-			require("awful").spawn.with_shell(cmd)
+		local enabled_switch = Gtk.Switch({ active = disp.cur_res ~= nil, valign = Gtk.Align.CENTER })
+		function enabled_switch:on_state_set(state)
+			res_combo:set_sensitive(state)
+			rate_combo:set_sensitive(state)
+			return false
+		end
+		res_combo:set_sensitive(disp.cur_res ~= nil)
+		rate_combo:set_sensitive(disp.cur_res ~= nil)
+
+		local primary_check = Gtk.CheckButton({ label = "Primary", active = disp.primary })
+
+		local rotation_combo = Gtk.ComboBoxText()
+		rotation_combo:append_text("Normal")
+		rotation_combo:append_text("Left")
+		rotation_combo:append_text("Right")
+		rotation_combo:append_text("Inverted")
+		local rot_idx = 0
+		for i, r in ipairs(ROTATIONS) do
+			if r == disp.rotation then rot_idx = i - 1; break end
+		end
+		rotation_combo:set_active(rot_idx)
+
+		local relation_combo = Gtk.ComboBoxText()
+		relation_combo:append_text("Independent")
+		relation_combo:append_text("Left of")
+		relation_combo:append_text("Right of")
+		relation_combo:append_text("Above")
+		relation_combo:append_text("Below")
+		relation_combo:append_text("Mirror (same as)")
+		relation_combo:set_active(0)
+
+		local reference_combo = Gtk.ComboBoxText()
+		for _, other in ipairs(displays) do
+			if other.name ~= disp.name then reference_combo:append_text(other.name) end
+		end
+		reference_combo:set_sensitive(false)
+		function relation_combo:on_changed()
+			reference_combo:set_sensitive(self:get_active() ~= 0)
 		end
 
 		grid:attach(Gtk.Label({ label = "Resolution",    halign = Gtk.Align.START }), 0, 0, 1, 1)
 		grid:attach(Gtk.Label({ label = "Refresh Rate",  halign = Gtk.Align.START }), 1, 0, 1, 1)
-		grid:attach(res_combo,  0, 1, 1, 1)
-		grid:attach(rate_combo, 1, 1, 1, 1)
-		grid:attach(apply,      2, 1, 1, 1)
+		grid:attach(Gtk.Label({ label = "Enabled",       halign = Gtk.Align.START }), 2, 0, 1, 1)
+		grid:attach(res_combo,       0, 1, 1, 1)
+		grid:attach(rate_combo,      1, 1, 1, 1)
+		grid:attach(enabled_switch,  2, 1, 1, 1)
+		grid:attach(Gtk.Label({ label = "Rotation",      halign = Gtk.Align.START }), 0, 2, 1, 1)
+		grid:attach(Gtk.Label({ label = "Position",      halign = Gtk.Align.START }), 1, 2, 1, 1)
+		grid:attach(rotation_combo,  0, 3, 1, 1)
+		grid:attach(relation_combo,  1, 3, 1, 1)
+		grid:attach(reference_combo, 2, 3, 1, 1)
+		grid:attach(primary_check,   0, 4, 1, 1)
 
 		frame:add(grid)
 		outer:add(frame)
+
+		frames[disp.name] = {
+			disp = disp,
+			res_combo = res_combo,
+			rate_combo = rate_combo,
+			enabled_switch = enabled_switch,
+			primary_check = primary_check,
+			rotation_combo = rotation_combo,
+			relation_combo = relation_combo,
+			reference_combo = reference_combo,
+		}
 	end
+
+	local applyall = Gtk.Button({ label = "Apply All Displays" })
+	function applyall:on_clicked()
+		local clauses = {}
+		for name, f in pairs(frames) do
+			if not f.enabled_switch:get_active() then
+				table.insert(clauses, "--output " .. name .. " --off")
+			else
+				local mode = f.disp.modes[f.res_combo:get_active() + 1]
+				local rate = mode and mode.rates[f.rate_combo:get_active() + 1]
+				local rot  = ROTATIONS[f.rotation_combo:get_active() + 1] or "normal"
+				local clause = "--output " .. name
+				if mode then clause = clause .. " --mode " .. mode.res end
+				if rate then clause = clause .. " --rate " .. rate end
+				clause = clause .. " --rotate " .. rot
+				if f.primary_check:get_active() then clause = clause .. " --primary" end
+				local rel = f.relation_combo:get_active()
+				if rel and rel > 0 then
+					local flag = RELATIONS[rel]
+					local refname = f.reference_combo:get_active_text()
+					if flag and refname then clause = clause .. " " .. flag .. " " .. refname end
+				end
+				table.insert(clauses, clause)
+			end
+		end
+		require("awful").spawn.with_shell("xrandr " .. table.concat(clauses, " "))
+	end
+	outer:add(applyall)
 
 	-- ── Display power / DPMS ──────────────────────────────────────────────────
 	local power_frame = Gtk.Frame({ label = "Display Power" })
@@ -977,8 +1151,9 @@ function app:on_startup()
 
 	stack:add_titled(doGeneral(), "general", "General")
 	stack:add_titled(doTheme(),   "theme",   "Theme")
-	stack:add_titled(doPanel(),   "panel",   "Panel")
-	stack:add_titled(doDisplay(), "display", "Display")
+	stack:add_titled(doPanel(),     "panel",     "Panel")
+	stack:add_titled(doAutostart(), "autostart", "Autostart")
+	stack:add_titled(doDisplay(),   "display",   "Display")
 	stack:add_titled(doAudio(),   "audio",   "Audio")
 	stack:add_titled(doUser(),    "user",    "User")
 

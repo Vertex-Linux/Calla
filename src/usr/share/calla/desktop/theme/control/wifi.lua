@@ -310,6 +310,7 @@ awesome.connect_signal("widget::wifi", function()
     open = not open
     if open then
         awesome.emit_signal("widget::control::close")
+        awesome.emit_signal("widget::clipboard::close")
         awful.placement.bottom_right(wifibox, {
             margins = { bottom = dpi(60), right = dpi(20) },
             parent  = awful.screen.focused(),

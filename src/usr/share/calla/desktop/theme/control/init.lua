@@ -72,8 +72,9 @@ awesome.connect_signal("widget::control::close", function()
 end)
 
 awesome.connect_signal("widget::control", function()
-	if not controlbox.visible then          -- opening → close WiFi first
+	if not controlbox.visible then          -- opening → close WiFi and Clipboard first
 		awesome.emit_signal("widget::wifi::close")
+		awesome.emit_signal("widget::clipboard::close")
 	end
 	controlbox.visible = not controlbox.visible
 	infobox.visible    = not infobox.visible

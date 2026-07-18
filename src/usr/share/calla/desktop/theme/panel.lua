@@ -223,6 +223,11 @@ local cheatsheet = button({
 	run   = function() awesome.emit_signal("widget::cheatsheet") end,
 })
 
+local clipboard_btn = button({
+	image = "clipboard",
+	run   = function() awesome.emit_signal("widget::clipboard") end,
+})
+
 local wifi_icon_w = iconbox({ image = "wifioff" })
 local wifi_ssid_w = wibox.widget { text = "WiFi", widget = wibox.widget.textbox }
 local wifistore   = "wifioff"
@@ -365,6 +370,7 @@ local function applyPanelVisibility()
 	dock.visible        = user.panel_dock        ~= false
 	cheatsheet.visible   = user.panel_cheatsheet  ~= false
 	wifi_widget.visible  = user.panel_wifi        ~= false
+	clipboard_btn.visible = user.panel_clipboard  ~= false
 end
 
 applyPanelVisibility()
@@ -394,6 +400,7 @@ return wibox.widget {
 			{
 				systray,
 				cheatsheet,
+				clipboard_btn,
 				wifi_widget,
 				hovercursor(wibox.widget {
 					media,

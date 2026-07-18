@@ -103,7 +103,9 @@ local defaults = {
 	panel_battery  = true,
 	panel_clock    = true,
 	panel_dock     = true,
+	panel_clipboard = true,
 	lock_on_wake   = false,
+	autostart_apps = {},
 }
 
 if not gears.filesystem.file_readable(config) then
@@ -156,6 +158,12 @@ local autostart = {
 	"nm-applet",
 	"/usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1"
 }
+
+for _, app in ipairs(user.autostart_apps or {}) do
+	if app.enabled ~= false and app.command and app.command ~= "" then
+		table.insert(autostart, app.command)
+	end
+end
 
 local function restarted()
 	awesome.register_xproperty("restarted", "boolean")
