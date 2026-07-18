@@ -1,7 +1,6 @@
 # Calla
 
-Calla (made by [Stardust-kyun](https://github.com/stardust-kyun)) is the second desktop environment for AxOS. It is a lightweight desktop environment. This is my own update of this desktop enviroment introducing new updates and a bunch of bug fixes making the desktop faster and less buggy!
-
+Calla (made by [Stardust-kyun](https://github.com/stardust-kyun)) is the custom desktop enviroment for Vertex Linux, it can be installed on other arch linux baised things but is primaraly used on Vertex Linux.
 ## Screenshots 
 
 ![screenshot](screenshot.png)
@@ -52,7 +51,3 @@ Calla (made by [Stardust-kyun](https://github.com/stardust-kyun)) is the second 
 - [Jimmy](https://github.com/Jimmysit0) and [Petrolblue](https://github.com/petrolblue) for help with color schemes and lots of support.
 - And the support of many more!
 
----
-
-# "Co Autherd by Copilot" note:
-I am not using Copilot for any of these releases, this is simply a VSCode bug that if you had the agent menu open at ANY TIME during the creation of the repo, it just puts that there, and because the agent menu opens by defualt on VSCode, that is just always there.
