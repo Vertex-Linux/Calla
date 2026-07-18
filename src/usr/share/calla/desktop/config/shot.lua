@@ -8,12 +8,9 @@ local function screenshot(args)
 	awful.spawn.easy_async_with_shell("sleep " .. args.time .. " && maim " .. args.args .. " " .. tmp, function()
 		awful.spawn.easy_async_with_shell("[ -e '" .. tmp .. "' ] && echo exists", function(output)
 			if output:match('%w+') then
-				--[[awful.spawn.easy_async_with_shell("convert -trim " .. tmp .. " " .. tmp, function()
+				if user.shot_clipboard ~= false then
 					awful.spawn.with_shell("cat " .. tmp .. " | xclip -se c -t image/png -i")
-					awful.spawn.with_shell("cp " .. tmp .. " " .. user.shotdir)
-					awful.spawn.with_shell("rm " .. tmp)
-				end)--]]
-				awful.spawn.with_shell("cat " .. tmp .. " | xclip -se c -t image/png -i")
+				end
 				awful.spawn.with_shell("cp " .. tmp .. " " .. user.shotdir)
 				awful.spawn.with_shell("rm " .. tmp)
 				naughty.notification {

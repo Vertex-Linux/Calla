@@ -22,6 +22,7 @@ Calla (made by [Stardust-kyun](https://github.com/stardust-kyun)) is the second 
 - `noto-fonts-extra`
 - `lua-pam-git`
 - `playerctl`
+- `xclip`
 
 ### Optional
 
@@ -33,6 +34,7 @@ Calla (made by [Stardust-kyun](https://github.com/stardust-kyun)) is the second 
 - `cbatticon`: Battery status applet
 - `blueman`: Bluetooth manager
 - `xdg-user-dirs`: Generates standard home directories
+- `arandr + xrandr`: Dislpay manager, used in settings
 
 ---
 

@@ -5,7 +5,7 @@ pkgdesc="Calla desktop environement"
 arch=("x86_64")
 depends=("xorg-server" "pipewire-pulse"
   "brightnessctl" "inotify-tools"
-  "awesome-git" "picom" "maim"
+  "awesome-git" "picom" "maim" "xclip"
   "papirus-icon-theme" "noto-fonts"
   "noto-fonts-cjk" "noto-color-emoji-fontconfig"
   "noto-fonts-extra" "lua-pam-git")

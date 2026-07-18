@@ -22,6 +22,7 @@ PACMAN_REQUIRED=(
     inotify-tools
     picom
     maim
+    xclip
     papirus-icon-theme
     noto-fonts
     noto-fonts-cjk

@@ -91,6 +91,7 @@ local defaults = {
 	reboot = "systemctl reboot",
 	sessionlock = false,
 	shotdir = "~/Pictures/Screenshots",
+	shot_clipboard = true,
 	shutdown = "systemctl poweroff",
 	terminal = "vertex-term",
 	panel_menu     = true,

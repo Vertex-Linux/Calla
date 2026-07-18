@@ -179,6 +179,19 @@ local function doGeneral()
 			settings.shotdir = self:get_filename():gsub(os.getenv("HOME"), "~")
 		end
 
+		local clipboardLabel = Gtk.Label({ label = "Copy to Clipboard", halign = Gtk.Align.START, hexpand = true })
+		local clipboardSwitch = Gtk.Switch({ active = settings.shot_clipboard ~= false, valign = Gtk.Align.CENTER })
+		function clipboardSwitch:on_state_set(state)
+			settings.shot_clipboard = state
+			return false
+		end
+		local clipboardRow = Gtk.Box({
+			orientation = Gtk.Orientation.HORIZONTAL,
+			spacing = dpi(10),
+			clipboardLabel,
+			clipboardSwitch,
+		})
+
 		local grid = Gtk.Grid({
 			column_spacing = dpi(10),
 			row_spacing = dpi(10),
@@ -186,6 +199,7 @@ local function doGeneral()
 
 			{ label, top_attach = 0, left_attach = 0 },
 			{ button, top_attach = 1, left_attach = 0 },
+			{ clipboardRow, top_attach = 2, left_attach = 0 },
 		})
 
 		return grid
