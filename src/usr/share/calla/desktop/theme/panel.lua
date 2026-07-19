@@ -247,7 +247,10 @@ local wifi_widget = hovercursor(wibox.widget {
 	widget  = background({ bg = "bgmid", fg = "fg" }),
 })
 
+local connecting_ssid = nil
+
 local function updateWifiPanel()
+	if connecting_ssid then return end
 	awful.spawn.easy_async_with_shell(
 		-- line 1: wifi radio state ("enabled" / "disabled")
 		-- line 2: active wifi SSID if any ("yes:SSID")
@@ -278,6 +281,18 @@ local function updateWifiPanel()
 		end
 	)
 end
+
+awesome.connect_signal("wifi::connecting", function(ssid)
+	connecting_ssid = ssid
+	wifi_ssid_w.text = "Connecting…"
+	wifistore = "wifisearching"
+	wifi_icon_w.image = createicon(wifistore)
+end)
+
+awesome.connect_signal("wifi::connecting::done", function()
+	connecting_ssid = nil
+	updateWifiPanel()
+end)
 
 updateWifiPanel()
 gears.timer { timeout = 10, autostart = true, callback = updateWifiPanel }

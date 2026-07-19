@@ -151,18 +151,33 @@ local function makeRow(net)
             function(out)
                 local saved = (tonumber(out) or 0) > 1
                 if saved then
+                    awesome.emit_signal("wifi::connecting", ssid_c)
                     awful.spawn.with_shell('nmcli con up id "' .. esc(ssid_c) .. '"')
-                    gears.timer.start_new(3, function() rebuild(); return false end)
+                    gears.timer.start_new(3, function()
+                        awesome.emit_signal("wifi::connecting::done")
+                        rebuild()
+                        return false
+                    end)
                 elseif sec_c then
                     askPassword(ssid_c, function(pwd)
+                        awesome.emit_signal("wifi::connecting", ssid_c)
                         awful.spawn.with_shell(
                             'nmcli dev wifi connect "' .. esc(ssid_c) ..
                             '" password "' .. esc(pwd) .. '"')
-                        gears.timer.start_new(4, function() rebuild(); return false end)
+                        gears.timer.start_new(4, function()
+                            awesome.emit_signal("wifi::connecting::done")
+                            rebuild()
+                            return false
+                        end)
                     end)
                 else
+                    awesome.emit_signal("wifi::connecting", ssid_c)
                     awful.spawn.with_shell('nmcli dev wifi connect "' .. esc(ssid_c) .. '"')
-                    gears.timer.start_new(3, function() rebuild(); return false end)
+                    gears.timer.start_new(3, function()
+                        awesome.emit_signal("wifi::connecting::done")
+                        rebuild()
+                        return false
+                    end)
                 end
             end
         )
