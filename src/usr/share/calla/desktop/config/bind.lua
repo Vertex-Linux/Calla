@@ -44,18 +44,6 @@ awful.keyboard.append_global_keybindings({
 		end,
  		{ description = "next layout", group = "awesome" }
 	),
-    awful.key(
-		{ mod }, "Tab", function() 
-			awful.client.focus.byidx(1) 
-		end,
-        { description = "next window", group = "awesome" }
-    ),
-    awful.key(
-		{ mod, "Shift" }, "Tab", function() 
-			awful.client.focus.byidx(-1) 
-		end,
-		{ description = "previous window", group = "awesome" }
-    ),
 	awful.key(
 		{ mod }, "space", function() 
 			awesome.emit_signal("widget::menu") 
