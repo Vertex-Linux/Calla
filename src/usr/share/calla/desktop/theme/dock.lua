@@ -271,11 +271,20 @@ local function pin(class, exec, iconpath)
 		widget:emit_signal("widget::redraw_needed")
 	end
 
+	-- Modifiers awesome itself ignores when matching "no modifier" bindings
+	-- (Caps Lock / Num Lock) -- see awful.button's `ignore_modifiers`.
+	local IGNORED_MODS = { Lock = true, Mod2 = true }
+
 	-- Plain left-click is handled by hand here (rather than via `.buttons`) so
 	-- it can be distinguished from a drag-to-reorder gesture. Shift+click and
 	-- right-click stay on `.buttons` above, untouched.
 	widget:connect_signal("button::press", function(_, _, _, button, modifiers)
-		if button ~= 1 or (modifiers and #modifiers > 0) then return end
+		if button ~= 1 then return end
+		if modifiers then
+			for _, m in ipairs(modifiers) do
+				if not IGNORED_MODS[m] then return end
+			end
+		end
 		if mousegrabber.isrunning() then return end
 
 		local startpos = mouse.coords()
