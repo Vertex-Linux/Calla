@@ -6,6 +6,21 @@ local dpi = beautiful.xresources.apply_dpi
 local lgi = require("lgi")
 local Gtk = lgi.require("Gtk", "3.0")
 local dockjson = gears.filesystem.get_cache_dir() .. "dock.json"
+local dockicondir = gears.filesystem.get_cache_dir() .. "dock/"
+
+os.execute("mkdir -p '" .. dockicondir .. "'")
+
+-- Cache the icon a running client is actually using (the same source
+-- awful.widget.clienticon shows in the taskbar) so a pinned icon always
+-- matches, instead of guessing an icon-theme name from the WM_CLASS string.
+local function saveIcon(class, c)
+	if not (c and c.icon) then return nil end
+	local path = dockicondir .. class:gsub("[^%w%-_.]", "_") .. ".png"
+	local ok = pcall(function()
+		gears.surface.load(c.icon):write_to_png(path)
+	end)
+	return ok and path or nil
+end
 
 local tasklist
 
@@ -114,17 +129,19 @@ if not gears.filesystem.file_readable(dockjson) then
 end
 local pinned = readjson(dockjson)
 
-local function pin(class, exec)
-	local theme = Gtk.IconTheme.get_default()
-	local icon
-	local info = theme:lookup_icon(class:lower(), 64, 0)
-	if info then
-		icon = info:get_filename()
-	else
-		icon = require("menubar").utils.lookup_icon_uncached(class:lower())
-		if not icon then
-			local fallback = theme:lookup_icon("application-default-icon", 64, 0)
-			icon = fallback and fallback:get_filename() or nil
+local function pin(class, exec, iconpath)
+	local icon = iconpath
+	if not icon then
+		local theme = Gtk.IconTheme.get_default()
+		local info = theme:lookup_icon(class:lower(), 64, 0)
+		if info then
+			icon = info:get_filename()
+		else
+			icon = require("menubar").utils.lookup_icon_uncached(class:lower())
+			if not icon then
+				local fallback = theme:lookup_icon("application-default-icon", 64, 0)
+				icon = fallback and fallback:get_filename() or nil
+			end
 		end
 	end
 	local widget = hovercursor(wibox.widget {
@@ -337,8 +354,9 @@ tasklist = awful.widget.tasklist {
 					local pin_label = already_pinned and "Unpin from Dock" or "Pin to Dock"
 					local pin_action = function()
 						if already_pinned then return end
-						pins:add(pin(c.class, exec))
-						table.insert(pinned, { class = c.class, exec = exec })
+						local iconpath = saveIcon(c.class, c)
+						pins:add(pin(c.class, exec, iconpath))
+						table.insert(pinned, { class = c.class, exec = exec, icon = iconpath })
 						tasklist._do_tasklist_update_now()
 						writejson(dockjson, pinned)
 					end
@@ -386,7 +404,7 @@ tasklist = awful.widget.tasklist {
 }
 
 for _, app in ipairs(pinned) do
-	pins:add(pin(app.class, app.exec))
+	pins:add(pin(app.class, app.exec, app.icon))
 end
 
 local dock = wibox.widget {
