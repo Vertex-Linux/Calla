@@ -106,17 +106,20 @@ local function createrow(entry)
 		}
 	end
 
+	local previewbox = wibox.widget {
+		previewwidget,
+		left = dpi(10),
+		right = dpi(5),
+		top = dpi(8),
+		bottom = dpi(8),
+		buttons = { awful.button({}, 1, function() copyBack(entry) end) },
+		widget = wibox.container.margin
+	}
+
 	local row = wibox.widget {
 		{
 			{
-				{
-					previewwidget,
-					left = dpi(10),
-					right = dpi(5),
-					top = dpi(8),
-					bottom = dpi(8),
-					widget = wibox.container.margin
-				},
+				previewbox,
 				nil,
 				{
 					{ id = "remove", widget = clipbutton({ image = "close" }) },
@@ -128,7 +131,6 @@ local function createrow(entry)
 			margins = dpi(5),
 			widget = wibox.container.margin
 		},
-		buttons = { awful.button({}, 1, function() copyBack(entry) end) },
 		widget = background({ bg = "bgalt", fg = "fg" })
 	}
 
