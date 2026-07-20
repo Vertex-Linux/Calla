@@ -129,6 +129,23 @@ if not gears.filesystem.file_readable(dockjson) then
 end
 local pinned = readjson(dockjson)
 
+-- Rebuild `pinned` to match the current on-screen order of `pins` (each pin
+-- widget is tagged with `.pin_class`), then persist it.
+local function syncPinnedOrder()
+	local neworder = {}
+	for _, w in ipairs(pins:get_children()) do
+		for _, app in ipairs(pinned) do
+			if app.class == w.pin_class then
+				table.insert(neworder, app)
+				break
+			end
+		end
+	end
+	for i = #pinned, 1, -1 do pinned[i] = nil end
+	for i, app in ipairs(neworder) do pinned[i] = app end
+	writejson(dockjson, pinned)
+end
+
 local function pin(class, exec, iconpath)
 	local icon = iconpath
 	if not icon then
@@ -172,6 +189,7 @@ local function pin(class, exec, iconpath)
 		},
 		layout = wibox.layout.stack
 	})
+	widget.pin_class = class
 
 	local function unpin()
 		for i, app in ipairs(pinned) do
@@ -182,6 +200,8 @@ local function pin(class, exec, iconpath)
 		writejson(dockjson, pinned)
 	end
 
+	local clickAction = function() awful.spawn.with_shell(exec) end
+
 	local function check()
 		local present = false
 		local focused = false
@@ -189,12 +209,12 @@ local function pin(class, exec, iconpath)
 			widget:get_children_by_id("background")[1].bg = beautiful.bgalt
 			widget:get_children_by_id("foreground")[1].bg = beautiful.fg .. "64"
 			local fc = client.focus
+			clickAction = function()
+				for _, c in ipairs(client.get()) do
+					if c.class == class then c.minimized = false; c:raise() end
+				end
+			end
 			widget.buttons = {
-				awful.button({}, 1, function()
-					for _, c in ipairs(client.get()) do
-						if c.class == class then c.minimized = false; c:raise() end
-					end
-				end),
 				awful.button({ "Shift" }, 1, function() awful.spawn.with_shell(exec) end),
 				awful.button({}, 3, function()
 					showDockMenu({
@@ -212,15 +232,15 @@ local function pin(class, exec, iconpath)
 				if c.class == class then
 					widget:get_children_by_id("background")[1].bg = beautiful.bgalt
 					widget:get_children_by_id("foreground")[1].bg = beautiful.bgalt
-					widget.buttons = {
-						awful.button({}, 1, function()
-							c.first_tag:view_only()
-							for _, c2 in ipairs(client.get()) do
-								if c2.class == class then
-									c2.minimized = false; c2:raise(); c2:activate()
-								end
+					clickAction = function()
+						c.first_tag:view_only()
+						for _, c2 in ipairs(client.get()) do
+							if c2.class == class then
+								c2.minimized = false; c2:raise(); c2:activate()
 							end
-						end),
+						end
+					end
+					widget.buttons = {
 						awful.button({ "Shift" }, 1, function() awful.spawn.with_shell(exec) end),
 						awful.button({}, 3, function()
 							showDockMenu({
@@ -238,8 +258,8 @@ local function pin(class, exec, iconpath)
 		if not present then
 			widget:get_children_by_id("background")[1].bg = beautiful.bg
 			widget:get_children_by_id("foreground")[1].bg = beautiful.bg
+			clickAction = function() awful.spawn.with_shell(exec) end
 			widget.buttons = {
-				awful.button({}, 1, function() awful.spawn.with_shell(exec) end),
 				awful.button({}, 3, function()
 					showDockMenu({
 						{ "Launch",          function() awful.spawn.with_shell(exec) end },
@@ -250,6 +270,50 @@ local function pin(class, exec, iconpath)
 		end
 		widget:emit_signal("widget::redraw_needed")
 	end
+
+	-- Plain left-click is handled by hand here (rather than via `.buttons`) so
+	-- it can be distinguished from a drag-to-reorder gesture. Shift+click and
+	-- right-click stay on `.buttons` above, untouched.
+	widget:connect_signal("button::press", function(_, _, _, button, modifiers)
+		if button ~= 1 or (modifiers and #modifiers > 0) then return end
+		if mousegrabber.isrunning() then return end
+
+		local startpos = mouse.coords()
+		local dragging = false
+
+		mousegrabber.run(function(m)
+			if not dragging and m.buttons[1] and
+				(math.abs(m.x - startpos.x) > 10 or math.abs(m.y - startpos.y) > 10) then
+				dragging = true
+				widget.opacity = 0.5
+			end
+
+			if dragging then
+				local under = mouse.current_widgets
+				if under then
+					for _, w in ipairs(under) do
+						if w ~= widget and w.pin_class then
+							pins:swap_widgets(widget, w)
+							break
+						end
+					end
+				end
+			end
+
+			if not m.buttons[1] then
+				if dragging then
+					widget.opacity = 1
+					syncPinnedOrder()
+				else
+					clickAction()
+				end
+				mousegrabber.stop()
+				return false
+			end
+
+			return true
+		end, "fleur")
+	end)
 
 	client.connect_signal("request::manage", check)
 	client.connect_signal("request::unmanage", check)
