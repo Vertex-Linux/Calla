@@ -129,6 +129,11 @@ if not gears.filesystem.file_readable(dockjson) then
 end
 local pinned = readjson(dockjson)
 
+-- When locked (default), clicking a pinned app launches/focuses it and
+-- dragging is disabled. When unlocked, clicking does nothing but pins can be
+-- freely dragged to reorder them. Toggled from the dock's right-click menu.
+local dockLocked = true
+
 -- Rebuild `pinned` to match the current on-screen order of `pins` (each pin
 -- widget is tagged with `.pin_class`), then persist it.
 local function syncPinnedOrder()
@@ -202,6 +207,10 @@ local function pin(class, exec, iconpath)
 
 	local clickAction = function() awful.spawn.with_shell(exec) end
 
+	local function lockMenuItem()
+		return { dockLocked and "Unlock" or "Lock", function() dockLocked = not dockLocked end }
+	end
+
 	local function check()
 		local present = false
 		local focused = false
@@ -221,6 +230,7 @@ local function pin(class, exec, iconpath)
 						{ "Minimize",        function() fc.minimized = true end },
 						{ "Force Quit",      function() fc:kill() end },
 						{ "Unpin from Dock", unpin },
+						lockMenuItem(),
 					})
 				end),
 			}
@@ -247,6 +257,7 @@ local function pin(class, exec, iconpath)
 								{ "Minimize",        function() c.minimized = true end },
 								{ "Force Quit",      function() c:kill() end },
 								{ "Unpin from Dock", unpin },
+								lockMenuItem(),
 							})
 						end),
 					}
@@ -264,6 +275,7 @@ local function pin(class, exec, iconpath)
 					showDockMenu({
 						{ "Launch",          function() awful.spawn.with_shell(exec) end },
 						{ "Unpin from Dock", unpin },
+						lockMenuItem(),
 					})
 				end),
 			}
@@ -287,6 +299,13 @@ local function pin(class, exec, iconpath)
 		end
 		if mousegrabber.isrunning() then return end
 
+		-- Locked: normal click behavior, no dragging at all.
+		if dockLocked then
+			clickAction()
+			return
+		end
+
+		-- Unlocked: dragging only, clicking launches nothing.
 		local startpos = mouse.coords()
 		local dragging = false
 
@@ -313,8 +332,6 @@ local function pin(class, exec, iconpath)
 				if dragging then
 					widget.opacity = 1
 					syncPinnedOrder()
-				else
-					clickAction()
 				end
 				mousegrabber.stop()
 				return false
