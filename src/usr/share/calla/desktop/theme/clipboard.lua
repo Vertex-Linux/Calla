@@ -74,16 +74,14 @@ local function copyBack(entry)
 	end
 end
 
-local function removeFromHistory(id)
+local function clearAll()
+	clipcontainer:reset()
+	clipempty.visible = true
 	local h = histLoad()
-	for i, e in ipairs(h) do
-		if e.id == id then
-			if e.type == "image" and e.path then os.remove(e.path) end
-			table.remove(h, i)
-			break
-		end
+	for _, e in ipairs(h) do
+		if e.type == "image" and e.path then os.remove(e.path) end
 	end
-	histSave(h)
+	histSave({})
 end
 
 local function createrow(entry)
@@ -135,11 +133,7 @@ local function createrow(entry)
 	}
 
 	row:get_children_by_id("remove")[1].buttons = {
-		awful.button({}, 1, function()
-			clipcontainer:remove_widgets(row)
-			if #clipcontainer.children == 0 then clipempty.visible = true end
-			removeFromHistory(entry.id)
-		end)
+		awful.button({}, 1, function() clearAll() end)
 	}
 
 	return row
@@ -170,11 +164,7 @@ local header = wibox.widget {
 }
 
 header:get_children_by_id("clear")[1].buttons = {
-	awful.button({}, 1, function()
-		clipcontainer:reset()
-		clipempty.visible = true
-		pruneAndSave({})
-	end)
+	awful.button({}, 1, function() clearAll() end)
 }
 
 local clipboardbox = wibox {
